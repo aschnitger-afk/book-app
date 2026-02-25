@@ -9,7 +9,7 @@ import { WorldBuildingPhase } from '@/components/phases/WorldBuildingPhase';
 import { CharacterPhase } from '@/components/phases/CharacterPhase';
 import { PlottingPhase } from '@/components/phases/PlottingPhase';
 import { StyleAnalysisPhase } from '@/components/phases/StyleAnalysisPhase';
-import { DraftingPhase } from '@/components/phases/DraftingPhase';
+import { DraftingPhaseNew } from '@/components/phases/DraftingPhaseNew';
 import { EditingPhase } from '@/components/phases/EditingPhase';
 import { PublishingPhase } from '@/components/phases/PublishingPhase';
 import { PersonaSelector } from '@/components/shared/PersonaSelector';
@@ -80,7 +80,7 @@ export default function BookPage() {
       case 'plotting':
         return <PlottingPhase />;
       case 'drafting':
-        return <DraftingPhase />;
+        return <DraftingPhaseNew />;
       case 'editing':
         return <EditingPhase />;
       case 'publishing':
