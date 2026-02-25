@@ -32,6 +32,7 @@ export function DecisionSimulator({ character }: DecisionSimulatorProps) {
   const [messages, setMessages] = useState<SimulationMessage[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
   const [showThinking, setShowThinking] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -44,6 +45,8 @@ export function DecisionSimulator({ character }: DecisionSimulatorProps) {
 
   const handleSimulate = async () => {
     if (!scenario.trim()) return;
+    
+    setError(null);
 
     const newScenario: SimulationMessage = {
       id: Date.now().toString(),
@@ -57,6 +60,12 @@ export function DecisionSimulator({ character }: DecisionSimulatorProps) {
     setIsSimulating(true);
 
     try {
+      console.log('Sending decision simulation request:', {
+        characterId: character.id,
+        bookId: character.bookId,
+        type: 'decision'
+      });
+      
       const response = await fetch('/api/characters/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,9 +77,10 @@ export function DecisionSimulator({ character }: DecisionSimulatorProps) {
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
+      const data = await response.json();
+      console.log('Decision simulation response:', data);
+
+      if (response.ok && data.decision) {
         // Add thinking message first if enabled
         if (showThinking) {
           const thinkingMsg: SimulationMessage = {
@@ -90,9 +100,32 @@ export function DecisionSimulator({ character }: DecisionSimulatorProps) {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, responseMsg]);
+      } else {
+        const errorMsg = data.error || data.details || 'Fehler bei der Simulation';
+        console.error('Simulation error:', errorMsg);
+        setError(errorMsg);
+        
+        // Add error message to chat
+        const errorResponseMsg: SimulationMessage = {
+          id: (Date.now() + 2).toString(),
+          type: 'response',
+          content: `Entschuldigung, ich konnte nicht antworten. ${data.note ? `(${data.note})` : ''}`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorResponseMsg]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Simulation failed:', error);
+      setError(error.message || 'Netzwerkfehler');
+      
+      // Add error message to chat
+      const errorResponseMsg: SimulationMessage = {
+        id: (Date.now() + 2).toString(),
+        type: 'response',
+        content: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuche es später noch einmal.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorResponseMsg]);
     } finally {
       setIsSimulating(false);
     }

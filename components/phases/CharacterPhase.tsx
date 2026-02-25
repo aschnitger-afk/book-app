@@ -19,6 +19,7 @@ export function CharacterPhase() {
   const [activeTab, setActiveTab] = useState('list');
   const [isCreating, setIsCreating] = useState(false);
   const [generatingImage, setGeneratingImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentBook?.id) {
@@ -150,66 +151,82 @@ export function CharacterPhase() {
                   </div>
                   
                   {/* Generate Portrait Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      if (!currentBook || generatingImage) return;
-                      
-                      setGeneratingImage(selectedCharacter.id);
-                      try {
-                        // Build prompt from character description
-                        const prompt = `Portrait of ${selectedCharacter.name}, ${selectedCharacter.role || 'character'}. ${selectedCharacter.description || ''} ${selectedCharacter.appearance || ''}`.trim();
+                  <div className="flex flex-col items-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (!currentBook || generatingImage) return;
                         
-                        const response = await fetch('/api/images/generate', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            prompt: prompt || `Portrait of ${selectedCharacter.name}, fictional character`,
-                            imageType: 'character',
-                            bookId: currentBook.id,
-                            characterId: selectedCharacter.id,
-                            width: 1024,
-                            height: 1024,
-                          }),
-                        });
+                        setGeneratingImage(selectedCharacter.id);
+                        setImageError(null);
                         
-                        if (response.ok) {
-                          const data = await response.json();
-                          // Update character with new portrait
-                          await fetch(`/api/characters/${selectedCharacter.id}`, {
-                            method: 'PATCH',
+                        try {
+                          // Build prompt from character description
+                          const prompt = `Portrait of ${selectedCharacter.name}, ${selectedCharacter.role || 'character'}. ${selectedCharacter.description || ''} ${selectedCharacter.appearance || ''}`.trim();
+                          
+                          console.log('Generating image with prompt:', prompt);
+                          
+                          const response = await fetch('/api/images/generate', {
+                            method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ portraitUrl: data.imageUrl }),
+                            body: JSON.stringify({
+                              prompt: prompt || `Portrait of ${selectedCharacter.name}, fictional character`,
+                              imageType: 'character',
+                              bookId: currentBook.id,
+                              characterId: selectedCharacter.id,
+                              width: 1024,
+                              height: 1024,
+                            }),
                           });
                           
-                          // Update local state
-                          updateCharacter(selectedCharacter.id, { portraitUrl: data.imageUrl });
-                        } else {
-                          alert('Fehler bei der Bildgenerierung');
+                          const data = await response.json();
+                          console.log('Image generation response:', data);
+                          
+                          if (response.ok && data.imageUrl) {
+                            // Update character with new portrait
+                            await fetch(`/api/characters/${selectedCharacter.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ portraitUrl: data.imageUrl }),
+                            });
+                            
+                            // Update local state
+                            updateCharacter(selectedCharacter.id, { portraitUrl: data.imageUrl });
+                          } else {
+                            const errorMsg = data.error || data.details || 'Unbekannter Fehler';
+                            console.error('Image generation failed:', errorMsg);
+                            setImageError(errorMsg);
+                          }
+                        } catch (error: any) {
+                          console.error('Image generation error:', error);
+                          setImageError(error.message || 'Netzwerkfehler');
+                        } finally {
+                          setGeneratingImage(null);
                         }
-                      } catch (error) {
-                        console.error('Image generation error:', error);
-                        alert('Fehler bei der Bildgenerierung');
-                      } finally {
-                        setGeneratingImage(null);
-                      }
-                    }}
-                    disabled={generatingImage === selectedCharacter.id}
-                    className="gap-2"
-                  >
-                    {generatingImage === selectedCharacter.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Generiere...
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="h-4 w-4" />
-                        Portrait
-                      </>
+                      }}
+                      disabled={generatingImage === selectedCharacter.id}
+                      className="gap-2"
+                    >
+                      {generatingImage === selectedCharacter.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Generiere...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="h-4 w-4" />
+                          Portrait
+                        </>
+                      )}
+                    </Button>
+                    
+                    {imageError && (
+                      <p className="text-xs text-red-500 max-w-[200px] text-right">
+                        Fehler: {imageError}
+                      </p>
                     )}
-                  </Button>
+                  </div>
                 </div>
               </div>
 
