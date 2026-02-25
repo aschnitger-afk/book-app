@@ -10,14 +10,15 @@ import { CharacterList } from '@/components/character/CharacterList';
 import { CharacterDetail } from '@/components/character/CharacterDetail';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, Network, Brain, Mic, HelpCircle } from 'lucide-react';
+import { Plus, Users, Network, Brain, Mic, HelpCircle, Camera, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function CharacterPhase() {
-  const { currentBook, characters, fetchCharacters } = useAppStore();
+  const { currentBook, characters, fetchCharacters, updateCharacter } = useAppStore();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('list');
   const [isCreating, setIsCreating] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentBook?.id) {
@@ -122,22 +123,93 @@ export function CharacterPhase() {
             >
               {/* Header */}
               <div className="px-6 py-4 border-b bg-white/60 backdrop-blur-sm">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                    {selectedCharacter.portraitUrl ? (
-                      <img 
-                        src={selectedCharacter.portraitUrl} 
-                        alt={selectedCharacter.name}
-                        className="w-full h-full rounded-2xl object-cover"
-                      />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden">
+                      {selectedCharacter.portraitUrl ? (
+                        <img 
+                          src={selectedCharacter.portraitUrl} 
+                          alt={selectedCharacter.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        selectedCharacter.name?.[0]?.toUpperCase()
+                      )}
+                      
+                      {/* Generating overlay */}
+                      {generatingImage === selectedCharacter.id && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold">{selectedCharacter.name}</h1>
+                      <p className="text-slate-500">{selectedCharacter.role}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Generate Portrait Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (!currentBook || generatingImage) return;
+                      
+                      setGeneratingImage(selectedCharacter.id);
+                      try {
+                        // Build prompt from character description
+                        const prompt = `Portrait of ${selectedCharacter.name}, ${selectedCharacter.role || 'character'}. ${selectedCharacter.description || ''} ${selectedCharacter.appearance || ''}`.trim();
+                        
+                        const response = await fetch('/api/images/generate', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            prompt: prompt || `Portrait of ${selectedCharacter.name}, fictional character`,
+                            imageType: 'character',
+                            bookId: currentBook.id,
+                            characterId: selectedCharacter.id,
+                            width: 1024,
+                            height: 1024,
+                          }),
+                        });
+                        
+                        if (response.ok) {
+                          const data = await response.json();
+                          // Update character with new portrait
+                          await fetch(`/api/characters/${selectedCharacter.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ portraitUrl: data.imageUrl }),
+                          });
+                          
+                          // Update local state
+                          updateCharacter(selectedCharacter.id, { portraitUrl: data.imageUrl });
+                        } else {
+                          alert('Fehler bei der Bildgenerierung');
+                        }
+                      } catch (error) {
+                        console.error('Image generation error:', error);
+                        alert('Fehler bei der Bildgenerierung');
+                      } finally {
+                        setGeneratingImage(null);
+                      }
+                    }}
+                    disabled={generatingImage === selectedCharacter.id}
+                    className="gap-2"
+                  >
+                    {generatingImage === selectedCharacter.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generiere...
+                      </>
                     ) : (
-                      selectedCharacter.name?.[0]?.toUpperCase()
+                      <>
+                        <Camera className="h-4 w-4" />
+                        Portrait
+                      </>
                     )}
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold">{selectedCharacter.name}</h1>
-                    <p className="text-slate-500">{selectedCharacter.role}</p>
-                  </div>
+                  </Button>
                 </div>
               </div>
 
