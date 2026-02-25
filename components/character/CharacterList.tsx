@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sparkles, UserPlus, X, Loader2 } from 'lucide-react';
+import { Sparkles, UserPlus, X, Loader2, Wand2 } from 'lucide-react';
+import { PolishButton } from '@/components/shared/PolishableTextarea';
 import { motion } from 'framer-motion';
 
 interface CharacterListProps {
@@ -114,8 +115,8 @@ export function CharacterList({ onSelect, onCancel }: CharacterListProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="h-full flex flex-col max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <UserPlus className="h-6 w-6 text-violet-600" />
           Neuer Charakter
@@ -128,7 +129,7 @@ export function CharacterList({ onSelect, onCancel }: CharacterListProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6 bg-white rounded-2xl border p-6"
+        className="flex-1 overflow-y-auto space-y-6 bg-white rounded-2xl border p-6"
       >
         {/* Basic Info */}
         <div className="grid grid-cols-2 gap-4">
@@ -191,20 +192,27 @@ export function CharacterList({ onSelect, onCancel }: CharacterListProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="description">Beschreibung</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={generateWithAI}
-              disabled={isGenerating || !formData.name}
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-1" />
-              )}
-              Mit AI generieren
-            </Button>
+            <div className="flex gap-2">
+              <PolishButton
+                text={formData.description}
+                onPolished={(text) => setFormData({ ...formData, description: text })}
+                className="h-8 text-xs"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={generateWithAI}
+                disabled={isGenerating || !formData.name}
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-1" />
+                )}
+                Mit AI generieren
+              </Button>
+            </div>
           </div>
           <Textarea
             id="description"
@@ -217,7 +225,14 @@ export function CharacterList({ onSelect, onCancel }: CharacterListProps) {
 
         {/* Background */}
         <div className="space-y-2">
-          <Label htmlFor="background">Hintergrund</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="background">Hintergrund</Label>
+            <PolishButton
+              text={formData.background}
+              onPolished={(text) => setFormData({ ...formData, background: text })}
+              className="h-8 text-xs"
+            />
+          </div>
           <Textarea
             id="background"
             value={formData.background}

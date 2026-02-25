@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { StyleRadarChart } from '@/components/analysis/StyleRadarChart';
+import { StyleCreator } from '@/components/analysis/StyleCreator';
 import { ALL_AUTHOR_STYLES, StyleProfile } from '@/lib/styles/authorStylesExtended';
 import { 
   User, Sparkles, BookOpen, Database, Star, 
@@ -331,41 +332,14 @@ export function StyleAnalysisPhase() {
 
           {/* CUSTOM TAB */}
           <TabsContent value="custom" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Eigenen Stil entwickeln</CardTitle>
-                <CardDescription>
-                  Kombiniere Eigenschaften aus verschiedenen Stilen oder analysiere deinen Text
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-slate-50 rounded-lg text-center">
-                  <p className="text-slate-600">
-                    Dieses Feature wird in der nächsten Version verfügbar sein.
-                  </p>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Nutze bis dahin die Star-Autoren als Orientierung.
-                  </p>
-                </div>
-                
-                {selectedStyle && (
-                  <div className="pt-4 border-t">
-                    <p className="text-sm font-medium mb-2">Aktuellen Stil speichern als:</p>
-                    <div className="flex gap-2">
-                      <Input
-                        value={customStyleName}
-                        onChange={(e) => setCustomStyleName(e.target.value)}
-                        placeholder="Name für meinen Stil"
-                      />
-                      <Button onClick={saveCustomStyle} disabled={!customStyleName}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Speichern
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <StyleCreator 
+              onStyleCreated={(style) => {
+                setSelectedStyle(style);
+                setCustomStyleName(style.name);
+              }}
+              savedStyles={savedStyles}
+              onSaveStyle={saveCustomStyle}
+            />
           </TabsContent>
         </Tabs>
 

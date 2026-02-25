@@ -1,24 +1,29 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Slider } from '@/components/ui/slider';
 import { StyleRadarChart } from './StyleRadarChart';
-import { ALL_AUTHOR_STYLES, findSimilarAuthors, StyleProfile } from '@/lib/styles/authorStylesExtended';
-import { User, Sparkles, Save, Wand2, CheckCircle2, BookOpen } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { StyleProfile } from '@/lib/styles/authorStylesExtended';
+import { 
+  Sparkles, Save, Wand2, FileText, SlidersHorizontal, 
+  Zap, BookOpen, MessageCircle, Eye, Brain, Wind, Heart,
+  Activity, Gauge, Compass
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface StyleCreatorProps {
-  onStyleCreated?: (style: StyleProfile) => void;
-  initialStyle?: StyleProfile | null;
-  showSimilarAuthors?: boolean;
+  onStyleCreated: (style: StyleProfile) => void;
+  savedStyles: any[];
+  onSaveStyle: () => void;
 }
 
-const defaultCharacteristics: StyleProfile['characteristics'] = {
+const defaultCharacteristics = {
   pacing: 5,
   dialogueDensity: 5,
   descriptionLevel: 5,
@@ -31,361 +36,325 @@ const defaultCharacteristics: StyleProfile['characteristics'] = {
   accessibility: 5,
 };
 
-const labels: Record<string, { label: string; low: string; high: string }> = {
-  pacing: { label: 'Tempo', low: 'Langsam/lyrisch', high: 'Schnell/action' },
-  dialogueDensity: { label: 'Dialog-Anteil', low: 'Erzählend', high: 'Dialoglastig' },
-  descriptionLevel: { label: 'Beschreibung', low: 'Minimal', high: 'Sehr detailliert' },
-  sentenceComplexity: { label: 'Satz-Komplexität', low: 'Einfach/kurz', high: 'Komplex/lang' },
-  vocabularyRichness: { label: 'Wortschatz', low: 'Einfach', high: 'Anspruchsvoll' },
-  emotionalDepth: { label: 'Emotionale Tiefe', low: 'Oberflächlich', high: 'Tiefgründig' },
-  atmosphericDensity: { label: 'Atmosphäre', low: 'Sachlich', high: 'Dicht/stimmungsvoll' },
-  tensionLevel: { label: 'Spannung', low: 'Entspannt', high: 'Hochspannend' },
-  introspection: { label: 'Introspektion', low: 'Externe Handlung', high: 'Innerer Monolog' },
-  accessibility: { label: 'Lesbarkeit', low: 'Anspruchsvoll', high: 'Leicht zugänglich' },
-};
+const characteristicConfig = [
+  { key: 'pacing', label: 'Erzähltempo', icon: Zap, min: 'Langsam', max: 'Schnell', desc: 'Wie schnell entwickelt sich die Handlung?' },
+  { key: 'dialogueDensity', label: 'Dialog-Anteil', icon: MessageCircle, min: 'Wenig', max: 'Viel', desc: 'Wie viel Dialog vs. Erzählung?' },
+  { key: 'descriptionLevel', label: 'Beschreibung', icon: Eye, min: 'Sparsam', max: 'Ausführlich', desc: 'Wie detailliert werden Szenen beschrieben?' },
+  { key: 'sentenceComplexity', label: 'Satzkomplexität', icon: Brain, min: 'Einfach', max: 'Komplex', desc: 'Wie aufwendig sind die Satzstrukturen?' },
+  { key: 'vocabularyRichness', label: 'Wortschatz', icon: BookOpen, min: 'Einfach', max: 'Reichhaltig', desc: 'Wie vielfältig ist der Wortschatz?' },
+  { key: 'emotionalDepth', label: 'Emotionale Tiefe', icon: Heart, min: 'Oberflächlich', max: 'Tief', desc: 'Wie tief werden Emotionen erforscht?' },
+  { key: 'atmosphericDensity', label: 'Atmosphäre', icon: Wind, min: 'Sachlich', max: 'Stimmungsvoll', desc: 'Wie atmosphärisch ist die Erzählung?' },
+  { key: 'tensionLevel', label: 'Spannung', icon: Activity, min: 'Entspannt', max: 'Spannend', desc: 'Wie spannungsgeladen ist der Stil?' },
+  { key: 'introspection', label: 'Introspektion', icon: Compass, min: 'Handlung', max: 'Gedanken', desc: 'Fokus auf Handlung oder innere Gedanken?' },
+  { key: 'accessibility', label: 'Zugänglichkeit', icon: Gauge, min: 'Anspruchsvoll', max: 'Leicht', desc: 'Wie leicht ist der Text zu lesen?' },
+];
 
-export function StyleCreator({ onStyleCreated, initialStyle, showSimilarAuthors = true }: StyleCreatorProps) {
-  const [name, setName] = useState(initialStyle?.name || 'Mein Stil');
-  const [description, setDescription] = useState(initialStyle?.description || '');
-  const [characteristics, setCharacteristics] = useState<StyleProfile['characteristics']>(
-    initialStyle?.characteristics || defaultCharacteristics
-  );
+export function StyleCreator({ onStyleCreated, savedStyles, onSaveStyle }: StyleCreatorProps) {
+  const [activeSubTab, setActiveSubTab] = useState('manual');
+  const [styleName, setStyleName] = useState('');
+  const [styleDescription, setStyleDescription] = useState('');
+  const [characteristics, setCharacteristics] = useState(defaultCharacteristics);
   const [sampleText, setSampleText] = useState('');
-  const [similarAuthors, setSimilarAuthors] = useState<{ style: StyleProfile; similarity: number }[]>([]);
-  const [showComparison, setShowComparison] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const updateCharacteristic = (key: keyof StyleProfile['characteristics'], value: number) => {
-    setCharacteristics(prev => ({ ...prev, [key]: value }));
-    setIsSaved(false);
+  const handleCharacteristicChange = (key: string, value: number[]) => {
+    setCharacteristics(prev => ({ ...prev, [key]: value[0] }));
   };
 
-  const generateStyleDescription = (chars: StyleProfile['characteristics']): string => {
-    const parts: string[] = [];
+  const analyzeText = async () => {
+    if (!sampleText.trim() || sampleText.length < 100) return;
     
-    // Tempo
-    if (chars.pacing >= 7) parts.push('schnell getaktet');
-    else if (chars.pacing <= 3) parts.push('langsam und lyrisch');
-    else parts.push('ausgewogen im Tempo');
-    
-    // Dialog vs Narration
-    if (chars.dialogueDensity >= 7) parts.push('dialoglastig');
-    else if (chars.dialogueDensity <= 3) parts.push('erzählend');
-    
-    // Beschreibung
-    if (chars.descriptionLevel >= 7) parts.push('reich beschreibend');
-    else if (chars.descriptionLevel <= 3) parts.push('karg/minimalistisch');
-    
-    // Komplexität
-    if (chars.sentenceComplexity >= 7) parts.push('komplex verschachtelt');
-    else if (chars.sentenceComplexity <= 3) parts.push('einfach und direkt');
-    
-    // Wortschatz
-    if (chars.vocabularyRichness >= 7) parts.push('anspruchsvoll im Wortschatz');
-    else if (chars.vocabularyRichness <= 3) parts.push('einfacher Wortschatz');
-    
-    // Emotionen
-    if (chars.emotionalDepth >= 7) parts.push('emotional tiefgründig');
-    else if (chars.emotionalDepth <= 3) parts.push('eher sachlich');
-    
-    // Atmosphäre
-    if (chars.atmosphericDensity >= 7) parts.push('atmosphärisch dicht');
-    
-    // Spannung
-    if (chars.tensionLevel >= 7) parts.push('hochspannend');
-    else if (chars.tensionLevel <= 3) parts.push('entspannt');
-    
-    // Introspektion
-    if (chars.introspection >= 7) parts.push('introspektiv');
-    else if (chars.introspection <= 3) parts.push('aktionsorientiert');
-    
-    // Lesbarkeit
-    if (chars.accessibility >= 7) parts.push('leicht lesbar');
-    else if (chars.accessibility <= 3) parts.push('anspruchsvoll/élitär');
-
-    return parts.join(', ') + '.';
-  };
-
-  const getStyleProfileType = (chars: StyleProfile['characteristics']): string => {
-    // Determine primary style archetype
-    if (chars.pacing >= 7 && chars.tensionLevel >= 7) return 'Thriller-Autor';
-    if (chars.descriptionLevel >= 8 && chars.atmosphericDensity >= 8) return 'Atmosphärischer Erzähler';
-    if (chars.dialogueDensity >= 8) return 'Dialog-Spezialist';
-    if (chars.introspection >= 8) return 'Psychologischer Romancier';
-    if (chars.sentenceComplexity >= 8 && chars.vocabularyRichness >= 8) return 'Literarischer Stilist';
-    if (chars.pacing <= 4 && chars.descriptionLevel >= 7) return 'Lyrischer Erzähler';
-    if (chars.accessibility >= 8 && chars.pacing >= 6) return 'Unterhaltungsautor';
-    if (chars.emotionalDepth >= 8) return 'Emotionaler Geschichtenerzähler';
-    return 'Ausgewogener Allround-Autor';
-  };
-
-  const handleAutoAdjustFromText = async () => {
-    if (sampleText.length < 50) {
-      alert('Bitte gib mindestens 50 Zeichen ein für eine Analyse');
-      return;
-    }
-
     setIsAnalyzing(true);
-    
-    // Simulate analysis with small delay for UX
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Simple Heuristik
-    const sentences = sampleText.split(/[.!?]+/).filter(s => s.trim());
-    const words = sampleText.split(/\s+/).filter(w => w);
-    const avgSentenceLength = words.length / Math.max(sentences.length, 1);
-    const dialogueMatches = sampleText.match(/[""'']([^""'']+)[""'']/g);
-    const dialogueRatio = dialogueMatches ? dialogueMatches.join(' ').split(/\s+/).length / words.length : 0;
-    const avgWordLength = words.reduce((sum, w) => sum + w.length, 0) / words.length;
-    
-    // Count adjectives (simple heuristic)
-    const descriptivePattern = /\b\w+(ig|lich|isch|sam|haft|bar)\b/gi;
-    const descriptiveMatches = sampleText.match(descriptivePattern);
-    const descriptiveDensity = descriptiveMatches ? descriptiveMatches.length / words.length : 0;
-    
-    setCharacteristics({
-      pacing: avgSentenceLength < 12 ? 8 : avgSentenceLength < 20 ? 5 : 3,
-      dialogueDensity: Math.min(10, Math.round(dialogueRatio * 20)),
-      descriptionLevel: Math.min(10, Math.round(descriptiveDensity * 100)),
-      sentenceComplexity: avgSentenceLength > 25 ? 9 : avgSentenceLength > 15 ? 6 : 3,
-      vocabularyRichness: avgWordLength > 5.5 ? 8 : avgWordLength > 4.5 ? 5 : 3,
-      emotionalDepth: sampleText.match(/\b(fühlen|emotional|Herz|Seele|Schmerz|Freude)\b/gi) ? 7 : 5,
-      atmosphericDensity: descriptiveDensity > 0.05 ? 7 : 5,
-      tensionLevel: sampleText.match(/\b(Angst|Gefahr|plötzlich|sofort|Spannung)\b/gi) ? 7 : 5,
-      introspection: sampleText.match(/\b(dachte|fand|überlegte|innerlich|Gedanken)\b/gi) ? 7 : 4,
-      accessibility: avgWordLength > 5 ? 3 : avgWordLength > 4.5 ? 6 : 9,
-    });
-    
-    setIsAnalyzing(false);
-    setIsSaved(false);
-    
-    // Auto-find similar authors after analysis
-    const similar = findSimilarAuthors(characteristics, 5);
-    setSimilarAuthors(similar);
-    setShowComparison(true);
+    try {
+      const response = await fetch('/api/ai/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Analyze the following text and rate it on these 10 characteristics (0-10 scale). 
+          Return ONLY a JSON object with exact numbers:
+          {
+            "pacing": number (0=slow, 10=fast),
+            "dialogueDensity": number (0=little dialogue, 10=much dialogue),
+            "descriptionLevel": number (0=sparse, 10=detailed),
+            "sentenceComplexity": number (0=simple, 10=complex),
+            "vocabularyRichness": number (0=simple, 10=rich),
+            "emotionalDepth": number (0=surface, 10=deep),
+            "atmosphericDensity": number (0=factual, 10=atmospheric),
+            "tensionLevel": number (0=relaxed, 10=tense),
+            "introspection": number (0=action-focused, 10=thought-focused),
+            "accessibility": number (0=challenging, 10=easy)
+          }
+          
+          Text to analyze: "${sampleText.substring(0, 2000)}"`,
+          type: 'style',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        try {
+          const parsed = JSON.parse(data.result);
+          setCharacteristics({ ...defaultCharacteristics, ...parsed });
+          
+          // Auto-generate description based on analysis
+          const desc = generateDescription(parsed);
+          setStyleDescription(desc);
+          
+          setActiveSubTab('manual');
+        } catch (e) {
+          console.error('Failed to parse analysis:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const handleFindSimilar = () => {
-    const similar = findSimilarAuthors(characteristics, 5);
-    setSimilarAuthors(similar);
-    setShowComparison(true);
+  const generateDescription = (chars: typeof defaultCharacteristics) => {
+    const traits = [];
+    if (chars.pacing > 7) traits.push('schnelles Erzähltempo');
+    if (chars.pacing < 4) traits.push('langsames, bedächtiges Tempo');
+    if (chars.dialogueDensity > 7) traits.push('dialogreich');
+    if (chars.descriptionLevel > 7) traits.push('bildreiche Beschreibungen');
+    if (chars.sentenceComplexity > 7) traits.push('komplexe Satzstrukturen');
+    if (chars.vocabularyRichness > 7) traits.push('reicher Wortschatz');
+    if (chars.emotionalDepth > 7) traits.push('emotionale Tiefe');
+    if (chars.introspection > 7) traits.push('introspektiv');
+    
+    return traits.length > 0 
+      ? `Ein Stil mit ${traits.join(', ')}.` 
+      : 'Ein ausgewogener Schreibstil.';
   };
 
-  const handleSave = () => {
-    const style: StyleProfile = {
-      id: 'personal-' + Date.now(),
-      name,
-      author: name,
-      description: description || generateStyleDescription(characteristics),
+  const createStyle = async () => {
+    if (!styleName.trim()) return;
+    
+    setIsCreating(true);
+    
+    // Generate system prompt based on characteristics
+    const systemPrompt = generateSystemPrompt(characteristics);
+    
+    const newStyle: StyleProfile = {
+      id: `custom-${Date.now()}`,
+      name: styleName,
+      author: 'Mein Stil',
+      description: styleDescription || generateDescription(characteristics),
       characteristics,
-      systemPrompt: `Write in a style with these characteristics: pacing ${characteristics.pacing}/10, dialogue ${characteristics.dialogueDensity}/10, description ${characteristics.descriptionLevel}/10, complexity ${characteristics.sentenceComplexity}/10, vocabulary ${characteristics.vocabularyRichness}/10`,
-      genre: 'Personal Style',
-      era: 'Contemporary',
+      systemPrompt,
+      genre: 'Custom',
+      era: 'Modern',
     };
-    onStyleCreated?.(style);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    
+    onStyleCreated(newStyle);
+    setIsCreating(false);
   };
 
-  const styleDescription = useMemo(() => generateStyleDescription(characteristics), [characteristics]);
-  const styleType = useMemo(() => getStyleProfileType(characteristics), [characteristics]);
+  const generateSystemPrompt = (chars: typeof defaultCharacteristics) => {
+    const prompts = [];
+    
+    if (chars.pacing > 7) prompts.push('Fast pacing, quick scene changes');
+    if (chars.pacing < 4) prompts.push('Slow, deliberate pacing');
+    if (chars.dialogueDensity > 7) prompts.push('Heavy use of dialogue');
+    if (chars.dialogueDensity < 4) prompts.push('Minimal dialogue, narrative focus');
+    if (chars.descriptionLevel > 7) prompts.push('Rich, detailed descriptions');
+    if (chars.descriptionLevel < 4) prompts.push('Sparse, minimal description');
+    if (chars.sentenceComplexity > 7) prompts.push('Complex, varied sentence structures');
+    if (chars.sentenceComplexity < 4) prompts.push('Simple, direct sentences');
+    if (chars.vocabularyRichness > 7) prompts.push('Rich, sophisticated vocabulary');
+    if (chars.emotionalDepth > 7) prompts.push('Deep emotional exploration');
+    if (chars.atmosphericDensity > 7) prompts.push('Strong atmospheric, moody writing');
+    if (chars.tensionLevel > 7) prompts.push('High tension, suspenseful');
+    if (chars.introspection > 7) prompts.push('Introspective, character-focused');
+    if (chars.accessibility < 4) prompts.push('Literary, challenging prose');
+    if (chars.accessibility > 7) prompts.push('Accessible, easy-to-read prose');
+    
+    return prompts.length > 0 
+      ? `Writing style: ${prompts.join('. ')}.` 
+      : 'Balanced, general fiction writing style.';
+  };
+
+  const currentStyle: StyleProfile = {
+    id: 'preview',
+    name: styleName || 'Vorschau',
+    author: 'Mein Stil',
+    description: styleDescription,
+    characteristics,
+    systemPrompt: '',
+    genre: 'Custom',
+    era: 'Modern',
+  };
 
   return (
     <div className="space-y-6">
-      {/* Main Style Settings */}
-      <Card className="border-violet-200">
-        <CardHeader className="bg-violet-50">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5 text-violet-600" />
-            Deinen Schreibstil definieren
-          </CardTitle>
-          <CardDescription>
-            Passe die 10 linguistischen Dimensionen an oder analysiere einen Text automatisch
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          {/* Name & Description */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Name deines Stils</label>
-              <Input
-                value={name}
-                onChange={(e) => { setName(e.target.value); setIsSaved(false); }}
-                placeholder="z.B. Mein epischer Fantasy-Stil"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Beschreibung (optional)</label>
-              <Input
-                value={description}
-                onChange={(e) => { setDescription(e.target.value); setIsSaved(false); }}
-                placeholder="Kurze Beschreibung deines Stils"
-              />
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manual">
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Manuell einstellen
+          </TabsTrigger>
+          <TabsTrigger value="analyze">
+            <FileText className="h-4 w-4 mr-2" />
+            Aus Text analysieren
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Manual Creation */}
+        <TabsContent value="manual" className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Controls */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Stil-Parameter</CardTitle>
+                <CardDescription>
+                  Passe die 10 Dimensionen deines Schreibstils an
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 max-h-[500px] overflow-y-auto">
+                {characteristicConfig.map((config) => (
+                  <motion.div 
+                    key={config.key}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <config.icon className="h-4 w-4 text-violet-500" />
+                      <Label className="font-medium">{config.label}</Label>
+                      <span className="ml-auto text-sm font-bold text-violet-600">
+                        {characteristics[config.key as keyof typeof characteristics]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">{config.desc}</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400 w-20 text-right">{config.min}</span>
+                      <Slider
+                        value={[characteristics[config.key as keyof typeof characteristics]]}
+                        onValueChange={(val) => handleCharacteristicChange(config.key, val)}
+                        min={0}
+                        max={10}
+                        step={1}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-slate-400 w-20">{config.max}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Right: Preview */}
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Vorschau</CardTitle>
+                  <CardDescription>So sieht dein Stil-Profil aus</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                  <StyleRadarChart
+                    profiles={[currentStyle]}
+                    height={250}
+                    className="w-full"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Stil speichern</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Name deines Stils *</Label>
+                    <Input
+                      value={styleName}
+                      onChange={(e) => setStyleName(e.target.value)}
+                      placeholder="z.B. Mein Action-Stil"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Beschreibung</Label>
+                    <Textarea
+                      value={styleDescription}
+                      onChange={(e) => setStyleDescription(e.target.value)}
+                      placeholder="Beschreibe deinen Stil..."
+                      rows={3}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button 
+                    onClick={createStyle}
+                    disabled={!styleName.trim() || isCreating}
+                    className="w-full bg-gradient-to-r from-violet-600 to-purple-600"
+                  >
+                    {isCreating ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="mr-2"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </motion.div>
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Stil erstellen & übernehmen
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
+        </TabsContent>
 
-          {/* Auto-detect from text */}
-          <Card className="bg-slate-50 border-dashed">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Wand2 className="h-4 w-4" />
-                Schritt 1: Aus Text automatisch ermitteln
-              </CardTitle>
+        {/* Text Analysis */}
+        <TabsContent value="analyze" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Stil aus Text extrahieren</CardTitle>
+              <CardDescription>
+                Füge einen Text ein, der deinen Wunsch-Stil repräsentiert. Die AI analysiert ihn.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-4">
               <Textarea
                 value={sampleText}
                 onChange={(e) => setSampleText(e.target.value)}
-                placeholder="Füge hier einen Textausschnitt ein (mind. 50 Zeichen). Die KI analysiert Satzlänge, Wortwahl, Dialoganteil und setzt die Regler automatisch..."
-                rows={3}
-                className="text-sm"
+                placeholder="Füge hier deinen Beispieltext ein (mindestens 200 Zeichen für gute Ergebnisse)..."
+                rows={10}
+                className="resize-none"
               />
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={handleAutoAdjustFromText}
-                disabled={isAnalyzing || sampleText.length < 50}
-                className="bg-violet-600 hover:bg-violet-700"
-              >
-                {isAnalyzing ? (
-                  <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Analysiere...</>
-                ) : (
-                  <><Wand2 className="h-4 w-4 mr-2" /> Text analysieren & Regler setzen</>
-                )}
-              </Button>
-              <p className="text-xs text-slate-500">
-                Die Analyse berechnet: Satzlänge → Tempo & Komplexität | Dialog-Marker → Dialog-Anteil | Wortlänge → Wortschatz & Lesbarkeit
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-500">
+                  {sampleText.length} Zeichen {sampleText.length < 200 && (
+                    <span className="text-amber-600">(mindestens 200 empfohlen)</span>
+                  )}
+                </p>
+                <Button
+                  onClick={analyzeText}
+                  disabled={sampleText.length < 100 || isAnalyzing}
+                  className="bg-gradient-to-r from-violet-600 to-purple-600"
+                >
+                  {isAnalyzing ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="mr-2"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                    </motion.div>
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-2" />
+                  )}
+                  Stil analysieren
+                </Button>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Sliders - Step 2 */}
-          <div>
-            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-              <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded text-xs">Schritt 2</span>
-              Manuelle Feinabstimmung (oder direkt einstellen)
-            </h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-              {Object.entries(labels).map(([key, { label, low, high }]) => (
-                <div key={key} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{label}</span>
-                    <span className="text-slate-500 font-mono">{characteristics[key as keyof typeof characteristics]}/10</span>
-                  </div>
-                  <Slider
-                    value={[characteristics[key as keyof typeof characteristics]]}
-                    onValueChange={([v]) => updateCharacteristic(key as keyof typeof characteristics, v)}
-                    min={1}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>{low}</span>
-                    <span>{high}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Preview Chart & Description */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Visuelles Profil</h4>
-              <StyleRadarChart
-                profiles={[]}
-                personalProfile={characteristics}
-                height={300}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              {/* Text Description */}
-              <div className="p-4 bg-gradient-to-br from-violet-50 to-blue-50 rounded-lg border border-violet-100">
-                <h4 className="font-medium text-violet-900 mb-2 flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Dein Stil-Profil
-                </h4>
-                <p className="text-lg font-semibold text-violet-800 mb-2">{styleType}</p>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {styleDescription}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {Object.entries(characteristics).map(([key, val]) => (
-                    <Badge 
-                      key={key} 
-                      variant={val > 7 ? "default" : val < 4 ? "secondary" : "outline"} 
-                      className="text-xs"
-                    >
-                      {labels[key].label}: {val}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Similar Authors - Integrated */}
-              {showSimilarAuthors && (
-                <div className="p-4 bg-slate-50 rounded-lg border">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm">Ähnliche Star-Autoren</h4>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleFindSimilar}
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Aktualisieren
-                    </Button>
-                  </div>
-                  
-                  {showComparison && similarAuthors.length > 0 ? (
-                    <div className="space-y-2">
-                      {similarAuthors.map(({ style, similarity }) => (
-                        <div key={style.id} className="flex items-center justify-between text-sm">
-                          <span className="font-medium">{style.name}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-violet-500"
-                                style={{ width: `${similarity}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-slate-500 w-12 text-right">{similarity.toFixed(0)}%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-400 italic">
-                      Klick auf "Aktualisieren" um ähnliche Autoren zu finden
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {/* Save Button with Feedback */}
-              <Button 
-                onClick={handleSave} 
-                className={cn(
-                  "w-full transition-all",
-                  isSaved 
-                    ? "bg-green-600 hover:bg-green-700" 
-                    : "bg-violet-600 hover:bg-violet-700"
-                )}
-                disabled={isSaved}
-              >
-                {isSaved ? (
-                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Stil gespeichert!</>
-                ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Stil speichern & übernehmen</>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

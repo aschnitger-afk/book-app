@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, Save, User, Target, Heart, AlertCircle, Zap, BookOpen } from 'lucide-react';
+import { PolishButton } from '@/components/shared/PolishableTextarea';
+import { Sparkles, Save, User, Target, Heart, AlertCircle, Zap, BookOpen, Wand2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface CharacterDetailProps {
@@ -118,15 +119,22 @@ export function CharacterDetail({ character }: CharacterDetailProps) {
           <div className="space-y-2 mt-4">
             <div className="flex items-center justify-between">
               <Label>Beschreibung</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => generateField('description')}
-                disabled={isGenerating.description}
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {isGenerating.description ? '...' : 'AI'}
-              </Button>
+              <div className="flex gap-2">
+                <PolishButton
+                  text={formData.description || ''}
+                  onPolished={(text) => handleChange('description', text)}
+                  className="h-8 text-xs"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => generateField('description')}
+                  disabled={isGenerating.description}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {isGenerating.description ? '...' : 'AI'}
+                </Button>
+              </div>
             </div>
             <Textarea
               value={formData.description || ''}
@@ -139,15 +147,22 @@ export function CharacterDetail({ character }: CharacterDetailProps) {
           <div className="space-y-2 mt-4">
             <div className="flex items-center justify-between">
               <Label>Hintergrund</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => generateField('background')}
-                disabled={isGenerating.background}
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {isGenerating.background ? '...' : 'AI'}
-              </Button>
+              <div className="flex gap-2">
+                <PolishButton
+                  text={formData.background || ''}
+                  onPolished={(text) => handleChange('background', text)}
+                  className="h-8 text-xs"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => generateField('background')}
+                  disabled={isGenerating.background}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {isGenerating.background ? '...' : 'AI'}
+                </Button>
+              </div>
             </div>
             <Textarea
               value={formData.background || ''}
@@ -178,24 +193,30 @@ export function CharacterDetail({ character }: CharacterDetailProps) {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-lg font-medium">{field.label}</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateField(field.key)}
-                    disabled={isGenerating[field.key]}
-                  >
-                    {isGenerating[field.key] ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      >
+                  <div className="flex gap-2">
+                    <PolishButton
+                      text={(formData as any)[field.key] || ''}
+                      onPolished={(text) => handleChange(field.key as keyof Character, text)}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateField(field.key)}
+                      disabled={isGenerating[field.key]}
+                    >
+                      {isGenerating[field.key] ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                        </motion.div>
+                      ) : (
                         <Sparkles className="h-4 w-4 mr-2" />
-                      </motion.div>
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    Mit AI generieren
-                  </Button>
+                      )}
+                      Mit AI generieren
+                    </Button>
+                  </div>
                 </div>
                 <Textarea
                   value={(formData as any)[field.key] || ''}
@@ -211,7 +232,13 @@ export function CharacterDetail({ character }: CharacterDetailProps) {
 
         {/* Notes */}
         <div className="bg-white rounded-2xl border p-6">
-          <Label className="text-lg font-medium">Notizen</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-lg font-medium">Notizen</Label>
+            <PolishButton
+              text={formData.notes || ''}
+              onPolished={(text) => handleChange('notes', text)}
+            />
+          </div>
           <Textarea
             value={formData.notes || ''}
             onChange={(e) => handleChange('notes', e.target.value)}
