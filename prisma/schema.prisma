@@ -1,0 +1,349 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Project Types Enum (for type safety)
+enum ProjectType {
+  FICTION
+  NON_FICTION
+  SCREENPLAY
+  TV_SERIES
+  SHORT_STORY
+}
+
+// Project Category for organization
+enum ProjectCategory {
+  NOVEL
+  NOVELLA
+  SHORT_STORY
+  MEMOIR
+  BIOGRAPHY
+  SELF_HELP
+  SCIENCE
+  HISTORY
+  FEATURE_FILM
+  SHORT_FILM
+  TV_PILOT
+  WEB_SERIES
+}
+
+model Book {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  genre       String?
+  status      String    @default("concept") // concept, worldbuilding, plotting, drafting, editing, publishing, published
+  currentPhase String   @default("concept") // concept, worldbuilding, plotting, drafting, editing, publishing
+  coverImage  String?   // Path to AI-generated cover
+  
+  // NEW: Project type and categorization
+  projectType     ProjectType   @default(FICTION)
+  projectCategory ProjectCategory @default(NOVEL)
+  targetFormat    String?       // "book", "ebook", "audiobook", "screenplay", "all"
+  
+  // NEW: Screenplay-specific fields
+  screenplayData  String?       // JSON with screenplay metadata (pages, format, etc.)
+  targetLength    Int?          // Target word count or page count
+  
+  // Phase tracking
+  styleanalysisCompleted Boolean @default(false)
+  conceptCompleted     Boolean @default(false)
+  worldbuildingCompleted Boolean @default(false)
+  plottingCompleted    Boolean @default(false)
+  plotStructure        String?  // JSON string of selected plot structure and beats
+  draftingCompleted    Boolean @default(false)
+  editingCompleted     Boolean @default(false)
+  
+  // NEW: Screenplay phase tracking
+  screenplayAdaptationStarted Boolean @default(false)
+  screenplayCompleted         Boolean @default(false)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  chapters    Chapter[]
+  characters  Character[]
+  plotPoints  PlotPoint[]
+  styleProfile StyleProfile?
+  concept     Concept?
+  worldSettings WorldSettings?
+  researchNotes ResearchNote[]
+  generatedImages GeneratedImage[]
+  screenplayScenes ScreenplayScene[]
+  
+  // AI Persona preference
+  aiPersona   String?   @default("creative_muse") // creative_muse, editor, critic, developmental_editor
+  
+  // NEW: Associated screenplay (if adapted)
+  sourceBookId String?   // If this is a screenplay, link to source book
+  adaptations  Book[]    @relation("BookAdaptations")
+  sourceBook   Book?     @relation("BookAdaptations", fields: [sourceBookId], references: [id])
+}
+
+model Concept {
+  id              String   @id @default(uuid())
+  bookId          String   @unique
+  
+  // Core concept elements
+  premise         String?  // The "what if" statement
+  elevatorPitch   String?  // One-sentence pitch
+  themes          String?  // Comma-separated themes
+  tone            String?  // Tone of the book
+  targetAudience  String?  // Who is this for?
+  
+  // Story basics
+  logline         String?  // Protagonist + Goal + Obstacle
+  centralConflict String?  // Main conflict
+  uniqueHook      String?  // What makes it different?
+  
+  // AI feedback
+  aiFeedback      String?  // Stored AI analysis
+  suggestions     String?  // Improvement suggestions
+  
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model WorldSettings {
+  id              String   @id @default(uuid())
+  bookId          String   @unique
+  
+  // Setting basics
+  timePeriod      String?  // When does it take place?
+  location        String?  // Where?
+  worldType       String?  // Real world, fantasy, sci-fi, etc.
+  
+  // Detailed settings
+  geography       String?  // Landscapes, climate
+  culture         String?  // Customs, traditions
+  politics        String?  // Government, power structures
+  technology      String?  // Tech level, magic system
+  history         String?  // Historical background
+  rules           String?  // Rules of the world (magic, physics)
+  
+  // Locations
+  locations       Location[]
+  
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Location {
+  id              String   @id @default(uuid())
+  worldSettingsId String
+  name            String
+  description     String?
+  significance    String?  // Why is this place important?
+  atmosphere      String?  // Mood/feeling of the location
+  imageUrl        String?  // AI-generated image
+  notes           String?
+  
+  worldSettings   WorldSettings @relation(fields: [worldSettingsId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Character {
+  id              String   @id @default(uuid())
+  name            String
+  role            String?  // protagonist, antagonist, supporting, mentor, sidekick
+  
+  // Basic info
+  age             String?
+  occupation      String?
+  appearance      String?
+  
+  // Deep characterization
+  description     String?
+  background      String?  // Backstory
+  personality     String?  // Traits, quirks
+  goals           String?  // What they want
+  motivations     String?  // Why they want it
+  conflicts       String?  // Internal and external conflicts
+  flaws           String?  // Character flaws
+  strengths       String?  // Character strengths
+  arc             String?  // Character development arc
+  
+  // Relationships
+  relationships   String?  // JSON array of relationships
+  
+  // Visual
+  portraitUrl     String?  // AI-generated portrait
+  
+  notes           String?
+  bookId          String
+  
+  // Chapter-specific elements
+  wish            String?  // What the character wants in this chapter
+  roadBack        String?  // What they learn/change
+  
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PlotPoint {
+  id              String   @id @default(uuid())
+  title           String
+  act             String   // act1, act2a, act2b, act3 (4-act structure)
+  order           Int
+  description     String?
+  
+  // Story structure
+  plotPointType   String?  // inciting_incident, rising_action, midpoint, climax, resolution, etc.
+  emotionalBeat   String?  // How should reader feel?
+  
+  // Connections
+  charactersInvolved String? // Character IDs
+  locationId      String?
+  
+  notes           String?
+  bookId          String
+  
+  // Status
+  isComplete      Boolean  @default(false)
+  wordCountTarget Int?     // Target words for this section
+  
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Chapter {
+  id              String   @id @default(uuid())
+  title           String
+  order           Int
+  content         String   @default("")
+  wordCount       Int      @default(0)
+  status          String   @default("draft") // draft, writing, review, completed
+  
+  // Structure
+  plotPointId     String?  // Links to plot point
+  
+  // Chapter metadata
+  povCharacter    String?  // Whose POV?
+  setting         String?  // Where does it take place?
+  timeline        String?  // When in the story?
+  
+  // AI feedback
+  aiAnalysis      String?  // Stored analysis
+  suggestions     String?  // Improvement suggestions
+  
+  // NEW: Screenplay format
+  isScreenplayFormat Boolean @default(false)
+  sceneHeading      String?  // INT. LOCATION - TIME OF DAY
+  sceneDescription  String?  // Action lines
+  
+  bookId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model StyleProfile {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?  // AI-generated description
+  sampleText      String?  // Original sample text
+  
+  // Style elements
+  voice           String?  // Narrative voice
+  tense           String?  // Past, present
+  pov             String?  // First, third limited, third omniscient
+  
+  bookId          String   @unique
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ResearchNote {
+  id              String   @id @default(uuid())
+  title           String
+  content         String?
+  category        String?  // character, setting, plot, historical, etc.
+  tags            String?  // Comma-separated
+  
+  // File attachments
+  fileUrl         String?
+  fileType        String?  // image, pdf, doc, etc.
+  fileName        String?
+  
+  // NEW: Importance/priority for AI context
+  priority        Int      @default(0) // 0-10, higher = more important to include in prompts
+  isGlobal        Boolean  @default(false) // If true, available across all projects
+  
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model GeneratedImage {
+  id              String   @id @default(uuid())
+  prompt          String   // The prompt used
+  imageUrl        String   // Path to stored image
+  imageType       String   // cover, character, location, scene
+  
+  // Related entities
+  characterId     String?
+  locationId      String?
+  
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  role            String   // user, assistant
+  content         String
+  bookId          String?
+  context         String?  // concept, worldbuilding, character, plot, writing, editing
+  persona         String?  // Which AI persona was used
+  createdAt       DateTime @default(now())
+}
+
+model AIPersona {
+  id              String   @id @default(uuid())
+  key             String   @unique // creative_muse, editor, critic, developmental_editor
+  name            String
+  description     String
+  systemPrompt    String   // The system prompt for this persona
+  icon            String   // Lucide icon name
+  color           String   // UI color
+  isDefault       Boolean  @default(false)
+}
+
+// NEW: Screenplay-specific structures
+model ScreenplayScene {
+  id              String   @id @default(uuid())
+  sceneNumber     Int
+  heading         String   // INT. COFFEE SHOP - DAY
+  description     String?  // Action lines
+  
+  // Scene breakdown
+  location        String?
+  timeOfDay       String?  // DAY, NIGHT, DAWN, DUSK, etc.
+  interior        Boolean  @default(true) // INT vs EXT
+  
+  // Content
+  content         String   @default("")
+  estimatedDuration Float? // In minutes
+  
+  // Relationships
+  characters      String?  // JSON array of character IDs in this scene
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
