@@ -76,6 +76,7 @@ model Book {
   researchNotes ResearchNote[]
   generatedImages GeneratedImage[]
   screenplayScenes ScreenplayScene[]
+  relationshipConnections RelationshipConnection[]
   
   // AI Persona preference
   aiPersona   String?   @default("creative_muse") // creative_muse, editor, critic, developmental_editor
@@ -172,11 +173,29 @@ model Character {
   strengths       String?  // Character strengths
   arc             String?  // Character development arc
   
+  // NEW: Psychological Profile (JSON)
+  soulprint       String?  // JSON: { empathy: 0-100, order: 0-100, tradition: 0-100, extroversion: 0-100, risk: 0-100, logic: 0-100 }
+  
+  // NEW: Voice Analysis (JSON)
+  voiceProfile    String?  // JSON: { complexity: 0-100, avgSentenceLength: number, favoriteWords: string[], tone: string }
+  
+  // NEW: Character Arc Timeline (JSON)
+  arcTimeline     String?  // JSON: [{ chapterId, state: string, emotionalLevel: 0-100 }]
+  
+  // NEW: Hero's Journey Position
+  heroJourneyStep String?  // ordinary_world, call_to_adventure, etc.
+  
   // Relationships
   relationships   String?  // JSON array of relationships
   
+  // NEW: Relationship Connections (for graph)
+  relationshipConnections RelationshipConnection[]
+  
   // Visual
   portraitUrl     String?  // AI-generated portrait
+  
+  // NEW: Emotion Portraits (JSON)
+  emotionPortraits String? // JSON: { joy: url, anger: url, sadness: url, fear: url }
   
   notes           String?
   bookId          String
@@ -188,6 +207,25 @@ model Character {
   book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// NEW: Relationship Connection Model
+model RelationshipConnection {
+  id              String   @id @default(uuid())
+  sourceId        String   // Character ID
+  targetId        String   // Character ID
+  type            String   // ally, enemy, family, love, mentor, rival
+  strength        Int      @default(50) // 0-100
+  description     String?  // Brief description of relationship
+  isConflict      Boolean  @default(false)
+  
+  source          Character @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([sourceId, targetId]) // Prevent duplicate connections
 }
 
 model PlotPoint {

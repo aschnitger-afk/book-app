@@ -5,12 +5,13 @@ import { cn } from '@/lib/utils';
 import { 
   Lightbulb, Globe, GitBranch, PenTool, 
   Edit3, BookOpen, CheckCircle2, Circle,
-  Radar
+  Radar, Users
 } from 'lucide-react';
 
 const phaseIcons: Record<BookPhase, React.ReactNode> = {
   concept: <Lightbulb className="h-4 w-4" />,
   worldbuilding: <Globe className="h-4 w-4" />,
+  characters: <Users className="h-4 w-4" />,
   plotting: <GitBranch className="h-4 w-4" />,
   styleanalysis: <Radar className="h-4 w-4" />,
   drafting: <PenTool className="h-4 w-4" />,
@@ -35,10 +36,10 @@ export function PhaseNavigation() {
         return currentBook.conceptCompleted;
       case 'worldbuilding':
         return currentBook.worldbuildingCompleted;
+      case 'characters':
+        return currentBook.charactersCompleted || false;
       case 'plotting':
         return currentBook.plottingCompleted;
-      case 'styleanalysis':
-        return true; // Always available
       case 'drafting':
         return currentBook.draftingCompleted;
       case 'editing':

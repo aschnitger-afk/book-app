@@ -45,7 +45,6 @@ export function PolishableTextarea({
       // Gather context for polishing
       const context = {
         genre: currentBook?.genre,
-        tone: currentBook?.concept?.tone,
         title: currentBook?.title,
       };
 
@@ -62,7 +61,6 @@ export function PolishableTextarea({
 Kontext:
 - Genre: ${context.genre || 'Nicht angegeben'}
 - Titel: ${context.title || 'Nicht angegeben'}
-- Ton: ${context.tone || 'Nicht angegeben'}
 
 ORIGINALTEXT:
 ${value}

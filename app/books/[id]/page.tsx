@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/store';
 import { PhaseNavigation } from '@/components/phases/PhaseNavigation';
 import { ConceptPhase } from '@/components/phases/ConceptPhase';
 import { WorldBuildingPhase } from '@/components/phases/WorldBuildingPhase';
+import { CharacterPhase } from '@/components/phases/CharacterPhase';
 import { PlottingPhase } from '@/components/phases/PlottingPhase';
 import { StyleAnalysisPhase } from '@/components/phases/StyleAnalysisPhase';
 import { DraftingPhase } from '@/components/phases/DraftingPhase';
@@ -74,6 +75,8 @@ export default function BookPage() {
         return <ConceptPhase />;
       case 'worldbuilding':
         return <WorldBuildingPhase />;
+      case 'characters':
+        return <CharacterPhase />;
       case 'plotting':
         return <PlottingPhase />;
       case 'drafting':

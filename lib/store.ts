@@ -20,16 +20,20 @@ export interface Book {
   aiPersona: string | null;
   styleProfile?: string | null;
   plotStructure?: string | null;
+  projectType?: string | null;
+  projectCategory?: string | null;
+  charactersCompleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type BookPhase = 'styleanalysis' | 'concept' | 'worldbuilding' | 'plotting' | 'drafting' | 'editing' | 'publishing';
+export type BookPhase = 'styleanalysis' | 'concept' | 'worldbuilding' | 'characters' | 'plotting' | 'drafting' | 'editing' | 'publishing';
 
 export const PHASES: { key: BookPhase; label: string; description: string }[] = [
   { key: 'styleanalysis', label: 'Stilanalyse', description: 'Deinen Schreibstil finden' },
   { key: 'concept', label: 'Konzept', description: 'Idee, Prämisse, Elevator Pitch' },
   { key: 'worldbuilding', label: 'World Building', description: 'Welt, Setting, Orte' },
+  { key: 'characters', label: 'Charaktere', description: 'Figuren, Beziehungen, Psyche' },
   { key: 'plotting', label: 'Plotting & Struktur', description: 'Story-Struktur mit Kapitel-Beats planen' },
   { key: 'drafting', label: 'Schreiben', description: 'Kapitel schreiben' },
   { key: 'editing', label: 'Bearbeiten', description: 'Überarbeiten, Feedback' },
@@ -107,6 +111,12 @@ export interface Character {
   roadBack: string | null;
   createdAt: Date;
   updatedAt: Date;
+  // NEW: Character Nexus fields
+  soulprint?: string | null;
+  voiceProfile?: string | null;
+  arcTimeline?: string | null;
+  heroJourneyStep?: string | null;
+  emotionPortraits?: string | null;
 }
 
 export interface PlotPoint {
@@ -288,6 +298,12 @@ interface AppState {
   clearChat: () => void;
   updateChapterContent: (chapterId: string, content: string) => void;
   updateBookProgress: (phase: BookPhase, completed: boolean) => void;
+  
+  // NEW: Character Nexus Actions
+  fetchCharacters: (bookId: string) => Promise<void>;
+  addCharacter: (character: Character) => void;
+  updateCharacter: (characterId: string, updates: Partial<Character>) => void;
+  deleteCharacter: (characterId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -389,6 +405,33 @@ export const useAppStore = create<AppState>()(
           )
         };
       }),
+      
+      // NEW: Character Nexus Actions
+      fetchCharacters: async (bookId) => {
+        try {
+          const response = await fetch(`/api/characters?bookId=${bookId}`);
+          if (response.ok) {
+            const characters = await response.json();
+            set({ characters });
+          }
+        } catch (error) {
+          console.error('Failed to fetch characters:', error);
+        }
+      },
+      
+      addCharacter: (character) => set((state) => ({
+        characters: [...state.characters, character]
+      })),
+      
+      updateCharacter: (characterId, updates) => set((state) => ({
+        characters: state.characters.map(c => 
+          c.id === characterId ? { ...c, ...updates } : c
+        )
+      })),
+      
+      deleteCharacter: (characterId) => set((state) => ({
+        characters: state.characters.filter(c => c.id !== characterId)
+      })),
     }),
     {
       name: 'novelcraft-storage',

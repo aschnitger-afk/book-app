@@ -20,6 +20,25 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const data = await request.json();
+    
+    const character = await prisma.character.update({
+      where: { id },
+      data
+    });
+    
+    return NextResponse.json(character);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update character' }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
