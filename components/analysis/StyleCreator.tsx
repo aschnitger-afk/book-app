@@ -66,6 +66,34 @@ export function StyleCreator({ onStyleCreated, savedStyles, onSaveStyle }: Style
     setCharacteristics(prev => ({ ...prev, [key]: value[0] }));
   };
 
+  const extractJSON = (text: string): any | null => {
+    // Try to find JSON object in the text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.log('JSON extraction failed, trying cleanup...');
+      }
+    }
+    
+    // Try to clean up common AI response issues
+    const cleaned = text
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .replace(/^\s*\{\s*/g, '{')
+      .replace(/\s*\}\s*$/g, '}')
+      .trim();
+    
+    try {
+      return JSON.parse(cleaned);
+    } catch (e) {
+      console.log('Cleaned JSON parsing failed');
+    }
+    
+    return null;
+  };
+
   const analyzeText = async () => {
     if (!sampleText.trim() || sampleText.length < 100) return;
     
@@ -78,19 +106,10 @@ export function StyleCreator({ onStyleCreated, savedStyles, onSaveStyle }: Style
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: `Analyze the following text and rate it on these 10 characteristics (0-10 scale). 
-          Return ONLY a JSON object with exact numbers:
-          {
-            "pacing": number (0=slow, 10=fast),
-            "dialogueDensity": number (0=little dialogue, 10=much dialogue),
-            "descriptionLevel": number (0=sparse, 10=detailed),
-            "sentenceComplexity": number (0=simple, 10=complex),
-            "vocabularyRichness": number (0=simple, 10=rich),
-            "emotionalDepth": number (0=surface, 10=deep),
-            "atmosphericDensity": number (0=factual, 10=atmospheric),
-            "tensionLevel": number (0=relaxed, 10=tense),
-            "introspection": number (0=action-focused, 10=thought-focused),
-            "accessibility": number (0=challenging, 10=easy)
-          }
+          Return ONLY a JSON object with exact numbers, no additional text:
+          {"pacing":5,"dialogueDensity":5,"descriptionLevel":5,"sentenceComplexity":5,"vocabularyRichness":5,"emotionalDepth":5,"atmosphericDensity":5,"tensionLevel":5,"introspection":5,"accessibility":5}
+          
+          Replace the numbers with your analysis. Return valid JSON only.
           
           Text to analyze: "${sampleText.substring(0, 2000)}"`,
           type: 'style',
@@ -99,31 +118,42 @@ export function StyleCreator({ onStyleCreated, savedStyles, onSaveStyle }: Style
 
       if (response.ok) {
         const data = await response.json();
-        try {
-          const parsed = JSON.parse(data.result);
-          setAnalysisResult(parsed);
-          setCharacteristics({ ...defaultCharacteristics, ...parsed });
+        console.log('AI Response:', data.result);
+        
+        const parsed = extractJSON(data.result);
+        
+        if (parsed) {
+          // Validate that all required keys are present
+          const requiredKeys = Object.keys(defaultCharacteristics);
+          const hasAllKeys = requiredKeys.every(key => typeof parsed[key] === 'number');
           
-          // Auto-generate description based on analysis
-          const desc = generateDescription(parsed);
-          setStyleDescription(desc);
-          
-          // Show success message first
-          setShowAnalysisSuccess(true);
-          
-          // Then switch to manual tab after a short delay
-          setTimeout(() => {
-            setActiveSubTab('manual');
-            setShowAnalysisSuccess(false);
-            // Scroll to results
+          if (hasAllKeys) {
+            setAnalysisResult(parsed);
+            setCharacteristics({ ...defaultCharacteristics, ...parsed });
+            
+            // Auto-generate description based on analysis
+            const desc = generateDescription(parsed);
+            setStyleDescription(desc);
+            
+            // Show success message first
+            setShowAnalysisSuccess(true);
+            
+            // Then switch to manual tab after a short delay
             setTimeout(() => {
-              manualTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-          }, 2000);
-          
-        } catch (e) {
-          console.error('Failed to parse analysis:', e);
-          alert('Fehler beim Parsen der Analyse. Bitte versuche es erneut.');
+              setActiveSubTab('manual');
+              setShowAnalysisSuccess(false);
+              // Scroll to results
+              setTimeout(() => {
+                manualTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 100);
+            }, 2000);
+          } else {
+            console.error('Missing keys in parsed data:', parsed);
+            alert('Die AI-Antwort war unvollständig. Bitte versuche es erneut.');
+          }
+        } else {
+          console.error('Could not parse AI response:', data.result);
+          alert('Fehler beim Parsen der Analyse. Die AI hat kein gültiges JSON zurückgegeben. Bitte versuche es erneut.');
         }
       } else {
         alert('Fehler bei der Analyse. Bitte versuche es erneut.');
