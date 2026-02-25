@@ -16,6 +16,7 @@ import { AIFeedbackButton } from '@/components/shared/AIFeedbackButton';
 import { PersonaSelector } from '@/components/shared/PersonaSelector';
 import { StyleQuickSelect } from '@/components/analysis/StyleSelector';
 import { StyleProfile, PREDEFINED_STYLES } from '@/lib/styles/authorStylesExtended';
+import { WritingTutor } from '@/components/writing/WritingTutor';
 
 export function DraftingPhase() {
   const params = useParams();
@@ -43,7 +44,7 @@ export function DraftingPhase() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [aiFeedback, setAiFeedback] = useState<string>('');
-  const [sidebarTab, setSidebarTab] = useState<'chapters' | 'characters' | 'plot' | 'world' | 'research'>('chapters');
+  const [sidebarTab, setSidebarTab] = useState<'chapters' | 'characters' | 'plot' | 'world' | 'research' | 'tutor'>('chapters');
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [isAddingChapter, setIsAddingChapter] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<StyleProfile | null>(null);
@@ -343,6 +344,7 @@ export function DraftingPhase() {
               { key: 'world', icon: Globe, label: 'Welt' },
               { key: 'plot', icon: Map, label: 'Plot' },
               { key: 'research', icon: Lightbulb, label: 'Recherche' },
+              { key: 'tutor', icon: Sparkles, label: 'KI-Tutor' },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -465,8 +467,19 @@ export function DraftingPhase() {
           )}
         </div>
 
-        {/* Right Sidebar - AI Feedback */}
-        {aiFeedback && (
+        {/* Right Sidebar - AI Feedback or Writing Tutor */}
+        {sidebarTab === 'tutor' && currentChapter ? (
+          <div className="w-96">
+            <WritingTutor
+              chapterContent={chapterContent}
+              chapterTitle={currentChapter.title}
+              bookContext={buildWritingContext()}
+              onApplySuggestion={(text) => {
+                setChapterContent(prev => prev + '\n\n' + text);
+              }}
+            />
+          </div>
+        ) : aiFeedback && (
           <div className="w-80 border-l bg-slate-50 flex flex-col">
             <div className="p-3 border-b bg-white flex items-center justify-between">
               <h3 className="font-semibold flex items-center gap-2 text-sm">

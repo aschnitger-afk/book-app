@@ -103,6 +103,12 @@ export interface Character {
   flaws: string | null;
   strengths: string | null;
   arc: string | null;
+  // NEW: Story-specific fields
+  storyGoal?: string | null;
+  unconsciousNeed?: string | null;
+  secret?: string | null;
+  affiliation?: string | null;
+  tags?: string | null;
   relationships: string | null;
   portraitUrl: string | null;
   notes: string | null;

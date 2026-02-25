@@ -173,6 +173,13 @@ model Character {
   strengths       String?  // Character strengths
   arc             String?  // Character development arc
   
+  // NEW: Story-specific fields
+  storyGoal       String?  // What they want to achieve in THIS story
+  unconsciousNeed String?  // What they really need (unconscious)
+  secret          String?  // Something to hide
+  affiliation     String?  // Faction/group/social class
+  tags            String?  // Comma-separated tags for filtering
+  
   // NEW: Psychological Profile (JSON)
   soulprint       String?  // JSON: { empathy: 0-100, order: 0-100, tradition: 0-100, extroversion: 0-100, risk: 0-100, logic: 0-100 }
   
