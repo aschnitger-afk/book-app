@@ -12,9 +12,8 @@ const phaseIcons: Record<BookPhase, React.ReactNode> = {
   concept: <Lightbulb className="h-4 w-4" />,
   worldbuilding: <Globe className="h-4 w-4" />,
   characters: <Users className="h-4 w-4" />,
-  plotting: <GitBranch className="h-4 w-4" />,
+  story: <GitBranch className="h-4 w-4" />,
   styleanalysis: <Radar className="h-4 w-4" />,
-  drafting: <PenTool className="h-4 w-4" />,
   editing: <Edit3 className="h-4 w-4" />,
   publishing: <BookOpen className="h-4 w-4" />,
 };
@@ -38,10 +37,8 @@ export function PhaseNavigation() {
         return currentBook.worldbuildingCompleted;
       case 'characters':
         return currentBook.charactersCompleted || false;
-      case 'plotting':
-        return currentBook.plottingCompleted;
-      case 'drafting':
-        return currentBook.draftingCompleted;
+      case 'story':
+        return currentBook.plottingCompleted || currentBook.draftingCompleted;
       case 'editing':
         return currentBook.editingCompleted;
       default:
@@ -51,9 +48,22 @@ export function PhaseNavigation() {
 
   const isPhaseAvailable = (phaseIndex: number) => {
     if (phaseIndex === 0) return true;
+    const phaseKey = PHASES[phaseIndex].key;
     const prevPhase = PHASES[phaseIndex - 1].key;
+    
     // Stylanalyse is optional - concept doesn't require it
-    if (PHASES[phaseIndex].key === 'concept') return true;
+    if (phaseKey === 'concept') return true;
+    
+    // Story is available if plotting OR drafting is completed, OR if worldbuilding is done
+    if (phaseKey === 'story') {
+      return currentBook.plottingCompleted || currentBook.draftingCompleted || currentBook.worldbuildingCompleted || currentBook.conceptCompleted;
+    }
+    
+    // Characters is available if worldbuilding is done (not strictly required)
+    if (phaseKey === 'characters') {
+      return currentBook.worldbuildingCompleted || currentBook.conceptCompleted;
+    }
+    
     return getPhaseStatus(prevPhase);
   };
 

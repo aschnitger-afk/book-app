@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { AIFeedbackButton } from '@/components/shared/AIFeedbackButton';
+import { IdeaBoard } from '@/components/plot/IdeaBoard';
 import { PLOT_STRUCTURES, PlotStructure, PlotBeat, PLOT_GLOSSARY } from '@/lib/plot/structures';
 import { 
   CheckCircle2, BookOpen, Layers, ChevronRight, ChevronLeft, 
   Sparkles, Save, Wand2, AlertCircle, Target, Lightbulb,
   LayoutGrid, Clock, TrendingUp, FileText, HelpCircle, Info,
-  Activity, ArrowRight
+  Activity, ArrowRight, StickyNote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -32,7 +33,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-type WizardStep = 'intro' | 'structure' | 'timeline' | 'detail' | 'review';
+type WizardStep = 'intro' | 'board' | 'structure' | 'timeline' | 'detail' | 'review';
 
 interface BeatState extends PlotBeat {
   id: string;
@@ -73,7 +74,7 @@ function GlossaryTerm({ term, showIcon = true }: { term: string; showIcon?: bool
 
 // Tension Curve Visualization Component
 function TensionCurve({ beats, selectedIndex }: { beats: BeatState[]; selectedIndex: number }) {
-  if (!beats.length) return null;
+  if (!beats.length || beats.length < 2) return null;
 
   const width = 800;
   const height = 120;
@@ -82,8 +83,9 @@ function TensionCurve({ beats, selectedIndex }: { beats: BeatState[]; selectedIn
   const graphHeight = height - padding.top - padding.bottom;
 
   // Generate points for the curve
+  const validLength = Math.max(beats.length - 1, 1);
   const points = beats.map((beat, index) => {
-    const x = padding.left + (index / (beats.length - 1)) * graphWidth;
+    const x = padding.left + (index / validLength) * graphWidth;
     const y = padding.top + graphHeight - ((beat.tensionLevel || 50) / 100) * graphHeight;
     return { x, y, beat, index };
   });
@@ -400,65 +402,137 @@ Schreibe 2-3 Absätze, die direkt in das Kapitel übernommen werden können.`,
   if (step === 'intro') {
     return (
       <div className="h-full overflow-auto p-8">
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8">
           <div className="text-center">
             <div className="w-20 h-20 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Layers className="h-10 w-10 text-violet-600" />
             </div>
             <h1 className="text-3xl font-bold mb-2">Plot-Struktur entwickeln</h1>
             <p className="text-lg text-slate-600">
-              In dieser Phase planst du die Struktur deiner Geschichte Kapitel für Kapitel.
+              In dieser Phase planst du die Struktur deiner Geschichte – entweder frei auf dem Ideen-Board oder mit einer bewährten Struktur.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <Card className="text-center p-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <BookOpen className="h-6 w-6 text-blue-600" />
+          <div className="grid grid-cols-2 gap-6">
+            {/* Idea Board Option */}
+            <Card 
+              className="p-6 cursor-pointer hover:border-amber-400 hover:shadow-lg transition-all border-2 border-transparent group"
+              onClick={() => setStep('board')}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <StickyNote className="h-8 w-8 text-amber-600" />
+                </div>
+                <h3 className="font-semibold text-xl mb-2">Ideen-Board</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Sammle Ideen, Szenen und Charaktere wie auf einer Pinnwand. Die KI hilft dir, Verbindungen zu finden und eine Struktur aufzubauen.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
+                  <Badge variant="secondary">Freies Brainstorming</Badge>
+                  <Badge variant="secondary">KI-Verbindungen</Badge>
+                  <Badge variant="secondary">Visuelle Struktur</Badge>
+                </div>
               </div>
-              <h3 className="font-semibold mb-1">1. Struktur wählen</h3>
-              <p className="text-sm text-slate-600">Wähle aus bewährten Story-Strukturen wie Hero's Journey oder Save the Cat</p>
+              <div className="mt-6">
+                <Button className="w-full" variant="outline">
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Ideen sammeln
+                </Button>
+              </div>
             </Card>
-            <Card className="text-center p-6">
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Target className="h-6 w-6 text-amber-600" />
+
+            {/* Structure Option */}
+            <Card 
+              className="p-6 cursor-pointer hover:border-violet-400 hover:shadow-lg transition-all border-2 border-transparent group"
+              onClick={() => setStep('structure')}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <LayoutGrid className="h-8 w-8 text-violet-600" />
+                </div>
+                <h3 className="font-semibold text-xl mb-2">Story-Struktur</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Wähle aus bewährten Strukturen wie Hero's Journey, Save the Cat oder Drei-Akt-Struktur. Kapitel für Kapitel planen.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
+                  <Badge variant="secondary">8 Struktur-Modelle</Badge>
+                  <Badge variant="secondary">Spannungsbogen</Badge>
+                  <Badge variant="secondary">Beats planen</Badge>
+                </div>
               </div>
-              <h3 className="font-semibold mb-1">2. Beats planen</h3>
-              <p className="text-sm text-slate-600">Entwickle jeden Story-Beat mit KI-Unterstützung und konkreten Szenen</p>
-            </Card>
-            <Card className="text-center p-6">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <LayoutGrid className="h-6 w-6 text-green-600" />
+              <div className="mt-6">
+                <Button className="w-full">
+                  Struktur wählen
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
               </div>
-              <h3 className="font-semibold mb-1">3. Übersicht erhalten</h3>
-              <p className="text-sm text-slate-600">Behalte den Überblick über deine gesamte Story-Struktur</p>
             </Card>
           </div>
 
           {/* Feature preview */}
-          <Card className="bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Activity className="h-5 w-5 text-violet-600" />
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-amber-900 mb-1">KI-gestützte Strukturierung</h4>
+                    <p className="text-sm text-amber-700">
+                      Lasse die KI deine Ideen analysieren und Verbindungen sowie eine Story-Struktur vorschlagen.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-violet-900 mb-1">Mit Spannungsbogen-Visualisierung</h4>
-                  <p className="text-sm text-violet-700">
-                    Sieh auf einen Blick, wie sich die Spannung über deine Kapitel verteilt. 
-                    Optimiere den Rhythmus deiner Geschichte mit der visuellen Kurve.
-                  </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Activity className="h-5 w-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-violet-900 mb-1">Spannungsbogen-Visualisierung</h4>
+                    <p className="text-sm text-violet-700">
+                      Sieh auf einen Blick, wie sich die Spannung über deine Kapitel verteilt.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="text-center">
-            <Button size="lg" onClick={() => setStep('structure')} className="px-8">
-              Loslegen
-              <ChevronRight className="h-5 w-5 ml-2" />
+  // IDEA BOARD STEP
+  if (step === 'board') {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="border-b bg-white p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => setStep('intro')}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Zurück
+              </Button>
+              <div>
+                <h2 className="text-xl font-bold">Ideen-Board</h2>
+                <p className="text-sm text-slate-600">Sammle Ideen und lass die KI Struktur erkennen</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={() => setStep('structure')}>
+              Zu Struktur wechseln
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <IdeaBoard onIntegrateIntoPlot={() => {
+            // Refresh to show integrated plot
+            loadData();
+          }} />
         </div>
       </div>
     );
@@ -471,7 +545,7 @@ Schreibe 2-3 Absätze, die direkt in das Kapitel übernommen werden können.`,
         <div className="max-w-5xl mx-auto">
           <div className="mb-6">
             <Button variant="ghost" onClick={() => setStep('intro')} className="mb-4">
-              <ChevronLeft className="h-4 w-4 mr-1" /> Zurück
+              <ChevronLeft className="h-4 w-4 mr-1" /> Zurück zur Übersicht
             </Button>
             <div className="flex items-center justify-between">
               <div>

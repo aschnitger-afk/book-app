@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageGenerator } from '@/components/shared/ImageGenerator';
-import { BookOpen, Download, FileText, Book, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
+import { BackupManager } from '@/components/shared/BackupManager';
+import { BookOpen, Download, FileText, Book, CheckCircle2, Loader2, ExternalLink, HardDrive } from 'lucide-react';
 
 export function PublishingPhase() {
   const { currentBook, chapters, characters, concept } = useAppStore();
@@ -319,6 +320,22 @@ Kapitel: ${chapters.length}
                 </a>
               </li>
             </ul>
+          </CardContent>
+        </Card>
+
+        {/* Backup Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HardDrive className="h-5 w-5 text-violet-600" />
+              Sicherung & Wiederherstellung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BackupManager 
+              bookId={currentBook?.id} 
+              bookTitle={currentBook?.title}
+            />
           </CardContent>
         </Card>
       </div>

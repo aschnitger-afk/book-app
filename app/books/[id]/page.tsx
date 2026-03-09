@@ -7,9 +7,8 @@ import { PhaseNavigation } from '@/components/phases/PhaseNavigation';
 import { ConceptPhase } from '@/components/phases/ConceptPhase';
 import { WorldBuildingPhase } from '@/components/phases/WorldBuildingPhase';
 import { CharacterPhase } from '@/components/phases/CharacterPhase';
-import { PlottingPhase } from '@/components/phases/PlottingPhase';
+import { StoryPhase } from '@/components/phases/StoryPhase';
 import { StyleAnalysisPhase } from '@/components/phases/StyleAnalysisPhase';
-import { DraftingPhaseNew } from '@/components/phases/DraftingPhaseNew';
 import { EditingPhase } from '@/components/phases/EditingPhase';
 import { PublishingPhase } from '@/components/phases/PublishingPhase';
 import { PersonaSelector } from '@/components/shared/PersonaSelector';
@@ -77,10 +76,8 @@ export default function BookPage() {
         return <WorldBuildingPhase />;
       case 'characters':
         return <CharacterPhase />;
-      case 'plotting':
-        return <PlottingPhase />;
-      case 'drafting':
-        return <DraftingPhaseNew />;
+      case 'story':
+        return <StoryPhase />;
       case 'editing':
         return <EditingPhase />;
       case 'publishing':

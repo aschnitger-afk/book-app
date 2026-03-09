@@ -27,15 +27,14 @@ export interface Book {
   updatedAt: Date;
 }
 
-export type BookPhase = 'styleanalysis' | 'concept' | 'worldbuilding' | 'characters' | 'plotting' | 'drafting' | 'editing' | 'publishing';
+export type BookPhase = 'styleanalysis' | 'concept' | 'worldbuilding' | 'characters' | 'story' | 'editing' | 'publishing';
 
 export const PHASES: { key: BookPhase; label: string; description: string }[] = [
   { key: 'styleanalysis', label: 'Stilanalyse', description: 'Deinen Schreibstil finden' },
   { key: 'concept', label: 'Konzept', description: 'Idee, Prämisse, Elevator Pitch' },
   { key: 'worldbuilding', label: 'World Building', description: 'Welt, Setting, Orte' },
   { key: 'characters', label: 'Charaktere', description: 'Figuren, Beziehungen, Psyche' },
-  { key: 'plotting', label: 'Plotting & Struktur', description: 'Story-Struktur mit Kapitel-Beats planen' },
-  { key: 'drafting', label: 'Schreiben', description: 'Kapitel schreiben' },
+  { key: 'story', label: 'Story & Schreiben', description: 'Plot planen und Kapitel schreiben' },
   { key: 'editing', label: 'Bearbeiten', description: 'Überarbeiten, Feedback' },
   { key: 'publishing', label: 'Veröffentlichen', description: 'Export, KDP, PDF' },
 ];
@@ -393,10 +392,8 @@ export const useAppStore = create<AppState>()(
           case 'worldbuilding':
             updates.worldbuildingCompleted = completed;
             break;
-          case 'plotting':
+          case 'story':
             updates.plottingCompleted = completed;
-            break;
-          case 'drafting':
             updates.draftingCompleted = completed;
             break;
           case 'editing':

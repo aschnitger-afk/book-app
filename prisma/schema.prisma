@@ -77,6 +77,12 @@ model Book {
   generatedImages GeneratedImage[]
   screenplayScenes ScreenplayScene[]
   relationshipConnections RelationshipConnection[]
+  storyIdeas              StoryIdea[]
+  ideaConnections         IdeaConnection[]
+  
+  // SAFETY: Snapshots and Backups
+  chapterSnapshots        ChapterSnapshot[]
+  backupRecords           BackupRecord[]
   
   // AI Persona preference
   aiPersona   String?   @default("creative_muse") // creative_muse, editor, critic, developmental_editor
@@ -292,6 +298,7 @@ model Chapter {
   updatedAt       DateTime @updatedAt
   
   book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  snapshots       ChapterSnapshot[]
 }
 
 model StyleProfile {
@@ -391,4 +398,130 @@ model ScreenplayScene {
   book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// NEW: Story Idea Board - Visual brainstorming cards
+model StoryIdea {
+  id              String   @id @default(uuid())
+  title           String
+  content         String   @default("")
+  type            String   @default("idea") // idea, scene, character, plot_point, theme, note
+  
+  // Visual positioning on the board
+  positionX       Float    @default(0)
+  positionY       Float    @default(0)
+  color           String?  // Card color for categorization
+  
+  // AI-generated metadata
+  tags            String?  // JSON array of tags
+  aiSummary       String?  // AI-generated summary
+  suggestedConnections String? // JSON array of suggested idea IDs
+  
+  // Status
+  status          String   @default("draft") // draft, in_review, approved, converted
+  convertedToChapterId String? // If converted to a chapter
+  
+  // Relations
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  outgoingConnections IdeaConnection[] @relation("SourceIdea")
+  incomingConnections IdeaConnection[] @relation("TargetIdea")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Connections between ideas
+model IdeaConnection {
+  id              String   @id @default(uuid())
+  sourceId        String
+  targetId        String
+  type            String   @default("related") // related, leads_to, conflicts_with, supports
+  label           String?  // Optional label for the connection
+  strength        Int      @default(50) // 0-100 relevance
+  
+  // AI-generated
+  isAiSuggested   Boolean  @default(false)
+  aiReasoning     String?  // Why AI thinks these connect
+  
+  source          StoryIdea @relation("SourceIdea", fields: [sourceId], references: [id], onDelete: Cascade)
+  target          StoryIdea @relation("TargetIdea", fields: [targetId], references: [id], onDelete: Cascade)
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([sourceId, targetId, type]) // Prevent duplicate connections
+}
+
+// ============================================
+// SAFETY LAYER 1: Chapter Snapshots (Version History)
+// ============================================
+model ChapterSnapshot {
+  id              String   @id @default(uuid())
+  chapterId       String
+  bookId          String
+  
+  // Snapshot content
+  title           String
+  content         String   @default("")
+  wordCount       Int      @default(0)
+  
+  // Metadata
+  label           String?  // User-defined label (e.g., "Before major rewrite")
+  snapshotType    String   @default("auto") // auto, manual, pre_export
+  
+  // Change tracking (optional - for diff view)
+  previousSnapshotId String? 
+  changeSummary   String?  // AI-generated or computed summary of changes
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  chapter         Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  @@index([chapterId, createdAt])
+  @@index([bookId])
+}
+
+// ============================================
+// SAFETY LAYER 2 & 3: Backup Metadata
+// ============================================
+model BackupRecord {
+  id              String   @id @default(uuid())
+  bookId          String?  // null = full backup of all books
+  
+  // Backup info
+  filename        String   // Name of the backup file
+  filePath        String   // Full path to backup
+  fileSize        Int      // Size in bytes
+  checksum        String   // MD5/SHA256 for integrity verification
+  
+  // Backup type
+  backupType      String   @default("manual") // manual, auto_daily, auto_weekly, pre_export
+  
+  // Content summary (for display)
+  bookCount       Int      @default(0)
+  chapterCount    Int      @default(0)
+  characterCount  Int      @default(0)
+  
+  // Status
+  status          String   @default("completed") // pending, completed, failed, restored
+  errorMessage    String?
+  
+  // Restore tracking
+  restoredAt      DateTime?
+  restoredToId    String?  // If this backup was restored, link to new backup
+  
+  // Relations
+  book            Book?    @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([bookId])
+  @@index([createdAt])
+  @@index([backupType])
 }

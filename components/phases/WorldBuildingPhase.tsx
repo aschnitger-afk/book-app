@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useAppStore, WorldSettings, Location } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,9 +12,10 @@ import { TextEnhancer } from '@/components/shared/TextEnhancer';
 import { ImageGenerator } from '@/components/shared/ImageGenerator';
 import { WebResearchButton } from '@/components/shared/WebResearchButton';
 import { ResearchNotesBoard, ResearchNote, QuickResearchNote } from '@/components/research/ResearchNotesBoard';
+import { WorldBuildingField, WORLD_BUILDING_FIELDS } from '@/components/world/WorldBuildingField';
 import { 
   Globe, MapPin, Plus, Trash2, CheckCircle2, Sparkles, 
-  StickyNote, BookOpen, Search
+  StickyNote, BookOpen, Search, Lightbulb, Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,12 +28,12 @@ export function WorldBuildingPhase() {
   const [isSaving, setIsSaving] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
   const [pendingResearch, setPendingResearch] = useState<{title: string, content: string, category: ResearchNote['category']} | null>(null);
+  const [showGuide, setShowGuide] = useState(true);
 
   useEffect(() => {
     if (worldSettings) {
       setLocalSettings(worldSettings);
       setLocations(worldSettings.locations || []);
-      // Load research notes from localStorage for now
       const saved = localStorage.getItem(`research-notes-${worldSettings.id}`);
       if (saved) {
         try {
@@ -43,7 +43,6 @@ export function WorldBuildingPhase() {
     }
   }, [worldSettings]);
 
-  // Save research notes when they change
   useEffect(() => {
     if (worldSettings?.id && researchNotes.length > 0) {
       localStorage.setItem(`research-notes-${worldSettings.id}`, JSON.stringify(researchNotes));
@@ -180,6 +179,10 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
 
   const isComplete = localSettings.worldType && locations.length > 0;
 
+  const getFieldsByCategory = (category: 'basics' | 'society' | 'rules') => {
+    return WORLD_BUILDING_FIELDS.filter(f => f.category === category);
+  };
+
   return (
     <div className="h-full flex">
       <div className="flex-1 overflow-auto p-6">
@@ -192,7 +195,7 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
                 World Building
               </h1>
               <p className="text-slate-500 mt-1">
-                Schaffe die Welt deiner Geschichte und sammle Recherche-Notizen
+                Schaffe die Welt deiner Geschichte. Diese Informationen fließen automatisch in den Schreibprozess ein.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -211,6 +214,35 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
               </Button>
             </div>
           </div>
+
+          {/* Guide Card */}
+          {showGuide && (
+            <Card className="bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-violet-100 rounded-lg">
+                    <Info className="h-5 w-5 text-violet-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-violet-900">Wie World Building deine Story beeinflusst</h3>
+                    <p className="text-sm text-violet-700 mt-1">
+                      Die Informationen, die du hier einträgst, werden automatisch dem KI-Schreibtutor zur Verfügung gestellt. 
+                      Sie beeinflussen:
+                    </p>
+                    <ul className="text-sm text-violet-700 mt-2 space-y-1">
+                      <li>• <strong>Dialoge:</strong> Charaktere sprechen passend zu ihrer Kultur und Zeit</li>
+                      <li>• <strong>Beschreibungen:</strong> Das Setting wird konsistent dargestellt</li>
+                      <li>• <strong>Konflikte:</strong> Politik und Gesellschaft erzeugen natürliche Spannungen</li>
+                      <li>• <strong>Lösungen:</strong> Charaktere nutzen verfügbare Technologie/Magie realistisch</li>
+                    </ul>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowGuide(false)}>
+                    Ausblenden
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Progress */}
           <Card className="bg-slate-50 border-dashed">
@@ -270,149 +302,45 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
             )}
 
             {/* Basics Tab */}
-            <TabsContent value="basics" className="space-y-4">
+            <TabsContent value="basics" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Welt-Grundlagen</CardTitle>
                   <CardDescription>
-                    Definiere die grundlegenden Parameter deiner Welt
+                    Diese Grundlagen bestimmen das "Wo" und "Wann" deiner Story
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Zeitraum</label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={localSettings.timePeriod || ''}
-                          onChange={(e) => setLocalSettings({ ...localSettings, timePeriod: e.target.value })}
-                          placeholder="z.B. Mittelalter, 1984, Jahr 3045"
-                          className="flex-1"
-                        />
-                        <WebResearchButton
-                          topic={localSettings.timePeriod || ''}
-                          researchType="history"
-                          onResearch={(result) => handleResearchResult(result, `Recherche: ${localSettings.timePeriod}`, 'history')}
-                          size="sm"
-                          variant="outline"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Welttyp</label>
-                      <Input
-                        value={localSettings.worldType || ''}
-                        onChange={(e) => setLocalSettings({ ...localSettings, worldType: e.target.value })}
-                        placeholder="z.B. Fantasy, Sci-Fi, Realität"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Hauptsetting / Ort</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={localSettings.location || ''}
-                        onChange={(e) => setLocalSettings({ ...localSettings, location: e.target.value })}
-                        placeholder="z.B. Ein kleines Dorf in den Alpen"
-                        className="flex-1"
-                      />
-                      <WebResearchButton
-                        topic={localSettings.location || ''}
-                        researchType="location"
-                        onResearch={(result) => handleResearchResult(result, `Ort: ${localSettings.location}`, 'location')}
-                        size="sm"
-                        variant="outline"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Geographie & Landschaft</label>
-                      <WebResearchButton
-                        topic={`${localSettings.location || ''} ${localSettings.worldType || ''} geography`.trim()}
-                        researchType="geography"
-                        onResearch={(result) => handleResearchResult(result, 'Geographie', 'location')}
-                        size="sm"
-                      />
-                    </div>
-                    <TextEnhancer
-                      label=""
-                      value={localSettings.geography || ''}
-                      onChange={(value) => setLocalSettings({ ...localSettings, geography: value })}
-                      placeholder="Berge, Wälder, Meere, Klima, besondere geographische Merkmale..."
-                      rows={5}
-                      context="Beschreibe die Geographie und Landschaft der Welt."
+                <CardContent className="space-y-6">
+                  {getFieldsByCategory('basics').map((field) => (
+                    <WorldBuildingField
+                      key={field.key}
+                      field={field}
+                      value={String(localSettings[field.key as keyof WorldSettings] || '')}
+                      onChange={(value) => setLocalSettings({ ...localSettings, [field.key]: value })}
                     />
-                  </div>
+                  ))}
                 </CardContent>
               </Card>
             </TabsContent>
 
             {/* Society Tab */}
-            <TabsContent value="society" className="space-y-4">
+            <TabsContent value="society" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Gesellschaft & Kultur</CardTitle>
+                  <CardDescription>
+                    Diese Elemente geben deinen Charakteren ihren Hintergrund und ihre Motivation
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Politik & Machtstrukturen</label>
-                      <WebResearchButton
-                        topic={`${localSettings.timePeriod || ''} political system government`.trim()}
-                        researchType="politics"
-                        onResearch={(result) => handleResearchResult(result, 'Politik & Macht', 'politics')}
-                        size="sm"
-                      />
-                    </div>
-                    <TextEnhancer
-                      value={localSettings.politics || ''}
-                      onChange={(value) => setLocalSettings({ ...localSettings, politics: value })}
-                      placeholder="Regierung, Herrscher, Rechtsystem..."
-                      rows={4}
-                      context="Politische Strukturen und Machtverhältnisse."
+                <CardContent className="space-y-6">
+                  {getFieldsByCategory('society').map((field) => (
+                    <WorldBuildingField
+                      key={field.key}
+                      field={field}
+                      value={String(localSettings[field.key as keyof WorldSettings] || '')}
+                      onChange={(value) => setLocalSettings({ ...localSettings, [field.key]: value })}
                     />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Kultur & Bräuche</label>
-                      <WebResearchButton
-                        topic={`${localSettings.timePeriod || ''} ${localSettings.location || ''} culture traditions customs`.trim()}
-                        researchType="culture"
-                        onResearch={(result) => handleResearchResult(result, 'Kultur & Bräuche', 'culture')}
-                        size="sm"
-                      />
-                    </div>
-                    <TextEnhancer
-                      value={localSettings.culture || ''}
-                      onChange={(value) => setLocalSettings({ ...localSettings, culture: value })}
-                      placeholder="Religionen, Feste, Kleidung, Essen..."
-                      rows={4}
-                      context="Kultur, Bräuche und Traditionen."
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Historischer Hintergrund</label>
-                      <WebResearchButton
-                        topic={`${localSettings.timePeriod || ''} history historical events`.trim()}
-                        researchType="history"
-                        onResearch={(result) => handleResearchResult(result, 'Historischer Hintergrund', 'history')}
-                        size="sm"
-                      />
-                    </div>
-                    <TextEnhancer
-                      value={localSettings.history || ''}
-                      onChange={(value) => setLocalSettings({ ...localSettings, history: value })}
-                      placeholder="Wichtige historische Ereignisse..."
-                      rows={4}
-                      context="Geschichte der Welt."
-                    />
-                  </div>
+                  ))}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -436,6 +364,10 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
                       </Button>
                     </div>
                   </CardTitle>
+                  <CardDescription>
+                    Spezifische Orte, die in deiner Story eine Rolle spielen. 
+                    Sie werden als Settings für Szenen verwendet.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4">
@@ -478,8 +410,8 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
                             <Input
                               value={location.atmosphere || ''}
                               onChange={(e) => handleUpdateLocation({ ...location, atmosphere: e.target.value })}
-                              placeholder="Atmosphäre..."
-                              className="w-40"
+                              placeholder="Atmosphäre (z.B. düster, heiter, bedrohlich)..."
+                              className="w-64"
                             />
                             <ImageGenerator
                               type="location"
@@ -506,6 +438,7 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
                     <div className="text-center py-8 text-slate-400">
                       <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
                       <p>Noch keine Orte erstellt</p>
+                      <p className="text-sm mt-1">Füge Schauplätze hinzu, die in deiner Story vorkommen</p>
                     </div>
                   )}
                 </CardContent>
@@ -513,39 +446,23 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
             </TabsContent>
 
             {/* Rules Tab */}
-            <TabsContent value="rules" className="space-y-4">
+            <TabsContent value="rules" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Welt-Regeln</CardTitle>
+                  <CardTitle>Welt-Regeln & Einschränkungen</CardTitle>
+                  <CardDescription>
+                    Die "Spielregeln" deiner Welt. Konsistenz hier ist entscheidend für glaubwürdige Stories.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Technologie & Magiesystem</label>
-                      <WebResearchButton
-                        topic={`${localSettings.worldType || 'fantasy'} magic system rules`.trim()}
-                        researchType="technology"
-                        onResearch={(result) => handleResearchResult(result, 'Tech/Magie-System', 'technology')}
-                        size="sm"
-                      />
-                    </div>
-                    <TextEnhancer
-                      value={localSettings.technology || ''}
-                      onChange={(value) => setLocalSettings({ ...localSettings, technology: value })}
-                      placeholder="Technologie-Level, Magiesystem..."
-                      rows={5}
-                      context="Magiesystem oder Technologie."
+                <CardContent className="space-y-6">
+                  {getFieldsByCategory('rules').map((field) => (
+                    <WorldBuildingField
+                      key={field.key}
+                      field={field}
+                      value={String(localSettings[field.key as keyof WorldSettings] || '')}
+                      onChange={(value) => setLocalSettings({ ...localSettings, [field.key]: value })}
                     />
-                  </div>
-
-                  <TextEnhancer
-                    label="Welt-Regeln & Einschränkungen"
-                    value={localSettings.rules || ''}
-                    onChange={(value) => setLocalSettings({ ...localSettings, rules: value })}
-                    placeholder="Was ist möglich und was nicht?"
-                    rows={5}
-                    context="Physikalische oder magische Regeln."
-                  />
+                  ))}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -559,7 +476,8 @@ ORTE: ${locations.map(l => l.name).join(', ')}`.trim();
                     Recherche-Spickzettel
                   </CardTitle>
                   <CardDescription>
-                    Sammle hier alle deine Recherche-Ergebnisse wie ein echter Autor - mit Kategorien und Tags sortiert
+                    Sammle hier alle deine Recherche-Ergebnisse. Diese Notizen stehen dem KI-Schreibtutor 
+                    als Referenz zur Verfügung, wenn du schreibst.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

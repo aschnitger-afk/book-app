@@ -473,6 +473,8 @@ export function DraftingPhase() {
             <WritingTutor
               chapterContent={chapterContent}
               chapterTitle={currentChapter.title}
+              bookId={currentBook?.id || ''}
+              chapterId={currentChapter.id}
               bookContext={buildWritingContext()}
               onApplySuggestion={(text) => {
                 setChapterContent(prev => prev + '\n\n' + text);
