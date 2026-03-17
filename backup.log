@@ -1,0 +1,38 @@
+[main 529a33a] Auto backup: 2026-03-09 20:00
+ 49 files changed, 8549 insertions(+), 815 deletions(-)
+ create mode 100644 app/api/auto-backup/check-daily/route.ts
+ create mode 100644 app/api/auto-backup/route.ts
+ create mode 100644 app/api/backups/restore/route.ts
+ create mode 100644 app/api/backups/route.ts
+ create mode 100644 app/api/ideas/analyze/route.ts
+ create mode 100644 app/api/ideas/connections/route.ts
+ create mode 100644 app/api/ideas/integrate/route.ts
+ create mode 100644 app/api/ideas/route.ts
+ create mode 100644 app/api/snapshots/restore/route.ts
+ create mode 100644 app/api/snapshots/route.ts
+ create mode 100644 backup.log
+ create mode 100644 components/phases/StoryPhase.tsx
+ create mode 100644 components/plot/IdeaBoard.tsx
+ create mode 100644 components/shared/BackupInitializer.tsx
+ create mode 100644 components/shared/BackupManager.tsx
+ create mode 100644 components/shared/VersionHistory.tsx
+ create mode 100644 components/ui/popover.tsx
+ create mode 100644 components/world/WorldBuildingField.tsx
+ create mode 100644 components/writing/ScenePingPongV2.tsx
+ create mode 100644 components/writing/TextEditorToolbar.tsx
+ create mode 100644 components/writing/WritingContextPanel.tsx
+ create mode 100644 components/writing/WritingStyleControls.tsx
+ create mode 100644 lib/ai-helpers.ts
+ create mode 100644 lib/backup-service-client.ts
+ create mode 100644 lib/backup-service.ts
+ create mode 100644 lib/date-utils.ts
+ create mode 100644 lib/story-context.ts
+ create mode 100644 prisma/migrations/20260304221932_add_idea_board/migration.sql
+ create mode 100644 prisma/migrations/20260305082140_add_safety_snapshots_backups/migration.sql
+ create mode 100644 public/generated/09d599eb-7a50-4382-b484-e53baa2cb9b9.svg
+ create mode 100644 public/generated/196c0b0b-83eb-4d32-920a-ab14407da673.svg
+ create mode 100644 public/generated/72efb511-3e05-4f52-ba00-f3fc6bdbd350.svg
+ create mode 100644 public/generated/c7c9748e-bff4-479f-844b-bae2a67d06c7.svg
+To https://github.com/aschnitger-afk/book-app.git
+   c58f810..529a33a  main -> main
+Mon Mar  9 20:00:03 CET 2026: ✅ Backup successful
